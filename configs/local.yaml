@@ -1,0 +1,11 @@
+env: "local" # local, dev
+db:
+  host: "localhost"
+  port: "5432"
+  username: "kirrryu"
+  dbname: "shorty"
+  sslmode: "disable"
+http_server:
+  address: "localhost:8080"
+  timeout: 1s
+  idle_timeout: 120s
