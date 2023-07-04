@@ -1,0 +1,8 @@
+CREATE TABLE urls(
+    id SERIAL PRIMARY KEY,
+    url TEXT NOT NULL UNIQUE,
+    alias TEXT NOT NULL UNIQUE,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_alias ON urls(alias);
