@@ -22,3 +22,7 @@ func New(db DBTX) *Queries {
 func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 	return &Queries{tx}
 }
+
+func (q *Queries) DB() DBTX {
+	return q.db
+}

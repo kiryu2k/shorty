@@ -2,7 +2,9 @@ CREATE TABLE urls(
     id SERIAL PRIMARY KEY,
     url TEXT NOT NULL UNIQUE,
     alias TEXT NOT NULL UNIQUE,
-    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    visits INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_alias ON urls(alias);

@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/kiryu-dev/shorty/internal/config"
+	"github.com/kiryu-dev/shorty/internal/model"
 	"github.com/kiryu-dev/shorty/internal/storage"
 	_ "github.com/lib/pq"
 )
@@ -47,4 +48,67 @@ func (s *Storage) execTx(ctx context.Context, fn func(*storage.Queries) error) e
 		return err
 	}
 	return tx.Commit()
+}
+
+func (s *Storage) Save(ctx context.Context, shorty *model.ShortURL) error {
+	const (
+		op    = "postgres.Storage.Save"
+		query = `
+INSERT INTO urls (url, alias, created_at, updated_at)
+VALUES ($1, $2, $3, $4) RETURNING id;
+		`
+	)
+	err := s.execTx(ctx, func(q *storage.Queries) error {
+		err := q.DB().QueryRowContext(ctx, query, shorty.URL, shorty.Alias,
+			shorty.CreatedAt, shorty.UpdatedAt).Scan(&shorty.ID)
+		return err
+	})
+	if err != nil {
+		return fmt.Errorf("%s: %s", op, err)
+	}
+	return nil
+}
+
+func (s *Storage) GetURL(ctx context.Context, alias string) (string, error) {
+	const (
+		op    = "postgres.Storage.GetURL"
+		query = `SELECT url FROM urls WHERE alias = $1;`
+	)
+	var url string
+	err := s.execTx(ctx, func(q *storage.Queries) error {
+		err := q.DB().QueryRowContext(ctx, query, alias).Scan(&url)
+		if err == sql.ErrNoRows {
+			return model.ErrURLNotFound
+		}
+		return err
+	})
+	if err != nil {
+		return "", fmt.Errorf("%s: %s", op, err)
+	}
+	return url, nil
+}
+
+func (s *Storage) Delete(ctx context.Context, alias string) (*model.ShortURL, error) {
+	const (
+		op          = "postgres.Storage.Delete"
+		findQuery   = `SELECT id, url, visits, created_at FROM urls WHERE alias = $1;`
+		deleteQuery = `DELETE FROM urls WHERE alias = $1;`
+	)
+	del := new(model.ShortURL)
+	err := s.execTx(ctx, func(q *storage.Queries) error {
+		err := q.DB().QueryRowContext(ctx, findQuery, alias).
+			Scan(&del.ID, &del.URL, &del.Visits, &del.CreatedAt)
+		if err == sql.ErrNoRows {
+			return model.ErrURLNotFound
+		}
+		if err != nil {
+			return err
+		}
+		_, err = q.DB().ExecContext(ctx, deleteQuery, alias)
+		return err
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%s: %s", op, err)
+	}
+	return del, nil
 }
