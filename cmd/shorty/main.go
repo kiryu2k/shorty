@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/kiryu-dev/shorty/internal/config"
+	"github.com/kiryu-dev/shorty/internal/http"
 	"github.com/kiryu-dev/shorty/internal/storage/postgres"
 	"golang.org/x/exp/slog"
 )
@@ -23,16 +24,22 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	logger := initLogger(config.Env)
+	logger := setupLogger(config.Env)
 	logger.Info("shorty is here 😼", slog.String("env", config.Env))
 	storage, err := postgres.New(&config.DB)
 	if err != nil {
-		logger.Debug(err.Error())
+		logger.Error(err.Error())
+		return
 	}
 	defer storage.Close()
+	httpServer := http.New(&config.HTTPServer, nil)
+	if err := httpServer.ListenAndServe(); err != nil {
+		logger.Error(err.Error())
+		return
+	}
 }
 
-func initLogger(env string) *slog.Logger {
+func setupLogger(env string) *slog.Logger {
 	switch env {
 	case envLocal:
 		return slog.New(
