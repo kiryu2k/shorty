@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log"
 	"os"
 
 	"github.com/kiryu-dev/shorty/internal/config"
 	"github.com/kiryu-dev/shorty/internal/http"
+	"github.com/kiryu-dev/shorty/internal/service"
 	"github.com/kiryu-dev/shorty/internal/storage/postgres"
 	"golang.org/x/exp/slog"
 )
@@ -32,8 +34,15 @@ func main() {
 		return
 	}
 	defer storage.Close()
-	httpServer := http.New(&config.HTTPServer, nil)
+	var (
+		urlService = service.NewShortener(storage)
+		httpServer = http.New(&config.HTTPServer, urlService)
+	)
 	if err := httpServer.ListenAndServe(); err != nil {
+		logger.Error(err.Error())
+		return
+	}
+	if err := httpServer.Shutdown(context.Background()); err != nil {
 		logger.Error(err.Error())
 		return
 	}
