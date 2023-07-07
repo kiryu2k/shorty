@@ -5,6 +5,8 @@ import (
 	"flag"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/kiryu-dev/shorty/internal/config"
 	"github.com/kiryu-dev/shorty/internal/http"
@@ -38,10 +40,16 @@ func main() {
 		urlService = service.NewShortener(storage)
 		httpServer = http.New(&config.HTTPServer, urlService)
 	)
-	if err := httpServer.ListenAndServe(); err != nil {
-		logger.Error(err.Error())
-		return
-	}
+	go func() {
+		if err := httpServer.ListenAndServe(); err != nil {
+			logger.Error(err.Error())
+			return
+		}
+	}()
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGKILL, syscall.SIGTERM)
+	<-sigChan
+	logger.Info("bye dude 😼")
 	if err := httpServer.Shutdown(context.Background()); err != nil {
 		logger.Error(err.Error())
 		return

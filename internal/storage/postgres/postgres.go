@@ -129,6 +129,7 @@ func (s *Storage) GetURL(ctx context.Context, alias string) (string, error) {
 	return url, nil
 }
 
+/* TODO: Add use cases with this method */
 func (s *Storage) Delete(ctx context.Context, alias string) (*model.ShortURL, error) {
 	const (
 		op          = "postgres.Storage.Delete"
