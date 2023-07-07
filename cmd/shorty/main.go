@@ -47,7 +47,7 @@ func main() {
 		}
 	}()
 	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGKILL, syscall.SIGTERM)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	<-sigChan
 	logger.Info("bye dude 😼")
 	if err := httpServer.Shutdown(context.Background()); err != nil {
