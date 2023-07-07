@@ -22,7 +22,7 @@ const (
 
 func main() {
 	var configPath string
-	flag.StringVar(&configPath, "config", "./configs/local.yaml", "config file path")
+	flag.StringVar(&configPath, "config", "./configs/dev.yaml", "config file path")
 	flag.Parse()
 	config, err := config.LoadConfig(configPath)
 	if err != nil {

@@ -1,6 +1,24 @@
 version: '3.9'
 
 services:
+  shorty-api:
+    build: ./
+    command: make
+    environment:
+      - DB_PASSWORD=qwerty
+    ports:
+      - 8080:8080
+    depends_on:
+      migrate:
+        condition: service_started
+  migrate:
+    image: migrate/migrate
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./internal/storage/migrations:/database
+    command: [ "-path", "/database", "-database",  "postgres://kirrryu:qwerty@db:5432/shorty?sslmode=disable", "up" ]
   db:
     image: postgres
     restart: always
@@ -13,6 +31,11 @@ services:
       - 5432:5432
     volumes:
       - db:/var/lib/postgresql/data/
+    healthcheck:
+      test: ["CMD-SHELL", "sh -c 'pg_isready -U kirrryu -d shorty'"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
 
 volumes:
   db:
