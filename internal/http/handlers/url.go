@@ -40,6 +40,11 @@ func CreateShortURL(v *validator.RequestValidator, s URLShortener) http.HandlerF
 		}
 		resp := new(createResponse)
 		resp.Alias, err = s.MakeShort(r.Context(), req.URL)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(err.Error()))
+			return
+		}
 		w.Header().Add("Content-Type", "encoding/json")
 		if err := json.NewEncoder(w).Encode(resp); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)

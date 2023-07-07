@@ -20,10 +20,10 @@ func New(cfg *config.DB) (*Storage, error) {
 	db, err := sql.Open("postgres", fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=%s",
 		cfg.Host, cfg.Port, cfg.Username, cfg.DBName, cfg.Password, cfg.SSLMode))
 	if err != nil {
-		return nil, fmt.Errorf("invalid connection to postgres: %s", err)
+		return nil, fmt.Errorf("invalid connection to postgres: %w", err)
 	}
 	if err := db.Ping(); err != nil {
-		return nil, fmt.Errorf("cannot get access to postgtes: %s", err)
+		return nil, fmt.Errorf("cannot get access to postgtes: %w", err)
 	}
 	return &Storage{
 		db:      db,
@@ -43,7 +43,7 @@ func (s *Storage) execTx(ctx context.Context, fn func(*storage.Queries) error) e
 	q := storage.New(tx)
 	if err := fn(q); err != nil {
 		if rollbackErr := tx.Rollback(); rollbackErr != nil {
-			return fmt.Errorf("transaction error: %s, rollback error: %s", err, rollbackErr)
+			return fmt.Errorf("transaction error: %w, rollback error: %w", err, rollbackErr)
 		}
 		return err
 	}
@@ -64,14 +64,14 @@ VALUES ($1, $2, $3, $4) RETURNING id;
 		return err
 	})
 	if err != nil {
-		return fmt.Errorf("%s: %s", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 	return nil
 }
 
 func (s *Storage) GetAndUpdateVisits(ctx context.Context, alias string) (string, error) {
 	const (
-		op    = "postgres.Storage. GetAndUpdateVisits"
+		op    = "postgres.Storage.GetAndUpdateVisits"
 		query = `SELECT url FROM urls WHERE alias = $1;`
 	)
 	var url string
@@ -84,7 +84,7 @@ func (s *Storage) GetAndUpdateVisits(ctx context.Context, alias string) (string,
 		return s.incrementVisits(ctx, alias)
 	})
 	if err != nil {
-		return "", fmt.Errorf("%s: %s", op, err)
+		return "", fmt.Errorf("%s: %w", op, err)
 	}
 	return url, nil
 }
@@ -101,14 +101,14 @@ WHERE alias = $1;
 	)
 	res, err := s.db.ExecContext(ctx, query, alias)
 	if err != nil {
-		return fmt.Errorf("%s: %s", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 	count, err := res.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("%s: %s", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 	if count == 0 {
-		return fmt.Errorf("%s: %s", op, model.ErrURLNotFound)
+		return fmt.Errorf("%s: %w", op, model.ErrURLNotFound)
 	}
 	return nil
 }
@@ -119,19 +119,12 @@ func (s *Storage) GetURL(ctx context.Context, alias string) (string, error) {
 		query = `SELECT url FROM urls WHERE alias = $1;`
 	)
 	var url string
-	// err := s.execTx(ctx, func(q *storage.Queries) error {
-	// 	err := q.DB().QueryRowContext(ctx, query, alias).Scan(&url)
-	// 	if err == sql.ErrNoRows {
-	// 		return model.ErrURLNotFound
-	// 	}
-	// 	return err
-	// })
 	err := s.db.QueryRowContext(ctx, query, alias).Scan(&url)
 	if err == sql.ErrNoRows {
-		return "", fmt.Errorf("%s: %s", op, model.ErrURLNotFound)
+		return "", fmt.Errorf("%s: %w", op, model.ErrURLNotFound)
 	}
 	if err != nil {
-		return "", fmt.Errorf("%s: %s", op, err)
+		return "", fmt.Errorf("%s: %w", op, err)
 	}
 	return url, nil
 }
@@ -156,7 +149,7 @@ func (s *Storage) Delete(ctx context.Context, alias string) (*model.ShortURL, er
 		return err
 	})
 	if err != nil {
-		return nil, fmt.Errorf("%s: %s", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	return del, nil
 }

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/kiryu-dev/shorty/internal/libshorty/valuegen"
@@ -30,9 +31,18 @@ func (s *Shortener) MakeShort(ctx context.Context, url string) (string, error) {
 		UpdatedAt: time.Now().UTC(),
 	}
 	var err error
-	shortURL.Alias, err = valuegen.GenerateValue()
-	if err != nil {
-		return "", err
+	for {
+		shortURL.Alias, err = valuegen.GenerateValue()
+		if err != nil {
+			return "", err
+		}
+		_, err := s.storage.GetURL(ctx, shortURL.Alias)
+		if errors.Is(err, model.ErrURLNotFound) {
+			break
+		}
+		if err != nil {
+			return "", err
+		}
 	}
 	if err := s.storage.Save(ctx, shortURL); err != nil {
 		return "", err
