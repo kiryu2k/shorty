@@ -5,11 +5,14 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/go-chi/chi"
 	"github.com/kiryu-dev/shorty/internal/http/validator"
+	"github.com/kiryu-dev/shorty/internal/model"
 )
 
 type URLShortener interface {
 	MakeShort(context.Context, string) (string, error)
+	GetURL(context.Context, string) (string, error)
 }
 
 type createRequest struct {
@@ -42,5 +45,28 @@ func CreateShortURL(v *validator.RequestValidator, s URLShortener) http.HandlerF
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(err.Error()))
 		}
+	}
+}
+
+func Redirect(s URLShortener) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		alias := chi.URLParam(r, "alias")
+		if alias == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("invalid request"))
+			return
+		}
+		url, err := s.GetURL(r.Context(), alias)
+		if err == model.ErrURLNotFound {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(err.Error()))
+			return
+		}
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(err.Error()))
+			return
+		}
+		http.Redirect(w, r, url, http.StatusFound)
 	}
 }

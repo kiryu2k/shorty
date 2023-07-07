@@ -41,9 +41,7 @@ func (s *HTTPServer) setupMux() {
 	s.mux.Use(middleware.Recoverer)
 	s.mux.Route("/url", func(r chi.Router) {
 		r.Post("/", handlers.CreateShortURL(s.validator, s.urlService))
-		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("HELLO BACKEND WORLD!\n"))
-		})
+		r.Get("/{alias}", handlers.Redirect(s.urlService))
 	})
 }
 

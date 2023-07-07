@@ -10,6 +10,7 @@ import (
 
 type shortenerStorage interface {
 	Save(context.Context, *model.ShortURL) error
+	GetAndUpdateVisits(context.Context, string) (string, error)
 	GetURL(context.Context, string) (string, error)
 	Delete(context.Context, string) (*model.ShortURL, error)
 }
@@ -37,4 +38,8 @@ func (s *Shortener) MakeShort(ctx context.Context, url string) (string, error) {
 		return "", err
 	}
 	return shortURL.Alias, nil
+}
+
+func (s *Shortener) GetURL(ctx context.Context, alias string) (string, error) {
+	return s.storage.GetAndUpdateVisits(ctx, alias)
 }
