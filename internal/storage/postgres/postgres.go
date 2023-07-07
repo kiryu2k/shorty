@@ -69,19 +69,67 @@ VALUES ($1, $2, $3, $4) RETURNING id;
 	return nil
 }
 
+func (s *Storage) GetAndUpdateVisits(ctx context.Context, alias string) (string, error) {
+	const (
+		op    = "postgres.Storage. GetAndUpdateVisits"
+		query = `SELECT url FROM urls WHERE alias = $1;`
+	)
+	var url string
+	err := s.execTx(ctx, func(_ *storage.Queries) error {
+		var err error
+		url, err = s.GetURL(ctx, alias)
+		if err != nil {
+			return err
+		}
+		return s.incrementVisits(ctx, alias)
+	})
+	if err != nil {
+		return "", fmt.Errorf("%s: %s", op, err)
+	}
+	return url, nil
+}
+
+func (s *Storage) incrementVisits(ctx context.Context, alias string) error {
+	const (
+		op    = "postgres.Storage.incrementVisits"
+		query = `
+UPDATE urls
+SET visits = visits + 1,
+	updated_at = NOW()
+WHERE alias = $1;
+		`
+	)
+	res, err := s.db.ExecContext(ctx, query, alias)
+	if err != nil {
+		return fmt.Errorf("%s: %s", op, err)
+	}
+	count, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("%s: %s", op, err)
+	}
+	if count == 0 {
+		return fmt.Errorf("%s: %s", op, model.ErrURLNotFound)
+	}
+	return nil
+}
+
 func (s *Storage) GetURL(ctx context.Context, alias string) (string, error) {
 	const (
 		op    = "postgres.Storage.GetURL"
 		query = `SELECT url FROM urls WHERE alias = $1;`
 	)
 	var url string
-	err := s.execTx(ctx, func(q *storage.Queries) error {
-		err := q.DB().QueryRowContext(ctx, query, alias).Scan(&url)
-		if err == sql.ErrNoRows {
-			return model.ErrURLNotFound
-		}
-		return err
-	})
+	// err := s.execTx(ctx, func(q *storage.Queries) error {
+	// 	err := q.DB().QueryRowContext(ctx, query, alias).Scan(&url)
+	// 	if err == sql.ErrNoRows {
+	// 		return model.ErrURLNotFound
+	// 	}
+	// 	return err
+	// })
+	err := s.db.QueryRowContext(ctx, query, alias).Scan(&url)
+	if err == sql.ErrNoRows {
+		return "", fmt.Errorf("%s: %s", op, model.ErrURLNotFound)
+	}
 	if err != nil {
 		return "", fmt.Errorf("%s: %s", op, err)
 	}
