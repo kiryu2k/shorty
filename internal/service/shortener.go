@@ -30,22 +30,19 @@ func (s *Shortener) MakeShort(ctx context.Context, url string) (string, error) {
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
 	}
-	var err error
-	for {
-		shortURL.Alias, err = valuegen.GenerateValue()
-		if err != nil {
+	shortURL.Alias = valuegen.GenerateValue(shortURL.URL)
+	urlFromStorage, err := s.storage.GetURL(ctx, shortURL.Alias)
+	if errors.Is(err, model.ErrURLNotFound) {
+		if err := s.storage.Save(ctx, shortURL); err != nil {
 			return "", err
 		}
-		_, err := s.storage.GetURL(ctx, shortURL.Alias)
-		if errors.Is(err, model.ErrURLNotFound) {
-			break
-		}
-		if err != nil {
-			return "", err
-		}
+		return shortURL.Alias, nil
 	}
-	if err := s.storage.Save(ctx, shortURL); err != nil {
+	if err != nil {
 		return "", err
+	}
+	if url != urlFromStorage {
+		return "", model.ErrCollision
 	}
 	return shortURL.Alias, nil
 }

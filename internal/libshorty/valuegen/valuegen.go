@@ -1,26 +1,22 @@
 package valuegen
 
 import (
-	"crypto/rand"
+	"crypto/sha256"
 	"math/big"
+	"strconv"
+
+	"github.com/mr-tron/base58/base58"
 )
 
-const (
-	valueSize = 5
-	symbols   = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-)
+func GenerateValue(source string) string {
+	hash := generateHash(source)
+	value := new(big.Int).SetBytes(hash).Uint64()
+	bytes := []byte(strconv.FormatUint(value, 10))
+	return base58.Encode(bytes)[:8]
+}
 
-var symbolsCount = big.NewInt(int64(len(symbols)))
-
-func GenerateValue() (string, error) {
-	value := make([]byte, valueSize)
-	for i := range value {
-
-		n, err := rand.Int(rand.Reader, symbolsCount)
-		if err != nil {
-			return "", err
-		}
-		value[i] = symbols[int(n.Int64())]
-	}
-	return string(value), nil
+func generateHash(data string) []byte {
+	hashAlg := sha256.New()
+	hashAlg.Write([]byte(data))
+	return hashAlg.Sum(nil)
 }

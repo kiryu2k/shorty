@@ -17,4 +17,5 @@ type ShortURL struct {
 var (
 	ErrURLNotFound = fmt.Errorf("url is not found")
 	ErrURLExists   = fmt.Errorf("url exists")
+	ErrCollision   = fmt.Errorf("unexpected collision when generating short url")
 )
