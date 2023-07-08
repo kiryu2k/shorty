@@ -4,7 +4,7 @@ build:
 
 .PHONY: run
 run: build
-	@./bin/shorty
+	@./bin/shorty -config ./configs/local.yaml
 
 .PHONY: test
 test:
